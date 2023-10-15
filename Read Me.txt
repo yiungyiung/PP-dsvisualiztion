@@ -1,0 +1,1 @@
+go to build folder and click on snake to play
