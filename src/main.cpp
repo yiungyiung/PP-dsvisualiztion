@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 using namespace std;
+
 class Node;
 
 int dist = 75;
@@ -14,15 +15,18 @@ int item;
 bool show = false;
 bool found = false;
 
-// Base class for drawable objects
+const float BASE_WIDTH = 1600.0f;
+const float BASE_HEIGHT = 900.0f;
+
+float scaleX, scaleY;
+
 class Drawable
 {
 public:
-    virtual void Draw() = 0; // Pure virtual function
-    virtual ~Drawable() {}         // Virtual destructor
+    virtual void Draw() = 0;
+    virtual ~Drawable() {}
 };
 
-// Node class definition
 class Node : public Drawable
 {
 public:
@@ -30,26 +34,25 @@ public:
     string text;
     Node *next;
     bool canshow = false;
-    // Constructor
+
     Node(Rectangle _rect, string _text, Node *_next = NULL) : rect(_rect), text(_text), next(_next) {}
 
     ~Node()
     {
-        // Perform cleanup
         if (next != NULL)
         {
             delete next;
             next = NULL;
         }
     }
-    // Method to draw the node
-    void DrawNode () 
+
+    void DrawNode()
     {
         if (found && cansearch)
         {
             if (show == canshow)
             {
-                DrawRectangleRec(Rectangle{rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4}, GREEN);
+                DrawRectangleRec(Rectangle{rect.x - 2 * scaleX, rect.y - 2 * scaleY, rect.width + 4 * scaleX, rect.height + 4 * scaleY}, GREEN);
                 if (text == to_string(item))
                 {
                     DrawRectangleRec(rect, DARKGREEN);
@@ -69,7 +72,7 @@ public:
         else if (cansearch)
         {
             canshow = true;
-            DrawRectangleRec(Rectangle{rect.x - 2, rect.y - 2, rect.width + 4, rect.height + 4}, GREEN);
+            DrawRectangleRec(Rectangle{rect.x - 2 * scaleX, rect.y - 2 * scaleY, rect.width + 4 * scaleX, rect.height + 4 * scaleY}, GREEN);
             if (text == to_string(item))
             {
                 DrawRectangleRec(rect, DARKGREEN);
@@ -94,15 +97,16 @@ public:
 
         if (next != NULL)
         {
-            DrawLineEx({rect.x + rect.width, rect.y + rect.height / 2}, {next->rect.x, next->rect.y + next->rect.height / 2}, 4, RED);
-            DrawTriangle({next->rect.x, next->rect.y + next->rect.height / 2}, {next->rect.x - 10, next->rect.y + next->rect.height / 2 - 10}, {next->rect.x - 10, next->rect.y + next->rect.height / 2 + 10}, RED);
+            DrawLineEx({rect.x + rect.width, rect.y + rect.height / 2}, {next->rect.x, next->rect.y + next->rect.height / 2}, 4 * scaleX, RED);
+            DrawTriangle({next->rect.x, next->rect.y + next->rect.height / 2}, {next->rect.x - 10 * scaleX, next->rect.y + next->rect.height / 2 - 10 * scaleY}, {next->rect.x - 10 * scaleX, next->rect.y + next->rect.height / 2 + 10 * scaleY}, RED);
         }
     }
 
-    void Draw()  override
+    void Draw() override
     {
         DrawNode();
     }
+
     void UpdatePos(Rectangle _rect)
     {
         rect = _rect;
@@ -208,7 +212,8 @@ public:
         if (head != NULL)
         {
             Node *nodeToRemove = head;
-            head = head->next;
+            head = nodeToRemove->next;
+            nodeToRemove->next = NULL;
             delete nodeToRemove;
         }
         resetNodepos();
@@ -241,15 +246,19 @@ public:
         else
         {
             Node *current = head;
-            for (int i = 1; i < (pos - 1); i++)
+            for (int i = 1; i < (pos - 1) && current != NULL; i++)
             {
                 current = current->next;
             }
-            Node *nodeToRemove = current->next;
-            current->next = nodeToRemove->next;
-            delete nodeToRemove;
+            if (current != NULL && current->next != NULL)
+            {
+                Node *nodeToRemove = current->next;
+                current->next = nodeToRemove->next;
+                nodeToRemove->next = NULL;
+                delete nodeToRemove;
+                resetNodepos();
+            }
         }
-        resetNodepos();
     }
     void resetNodepos()
     {
@@ -268,11 +277,13 @@ public:
 int main(void)
 {
 
-    // Initialization
-    const int screenWidth = 1600;
-    const int screenHeight = 900;
+    const int baseScreenWidth = 1600;
+    const int baseScreenHeight = 900;
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(baseScreenWidth, baseScreenHeight, "LINKED LIST VISUALIZATION");
 
-    InitWindow(screenWidth, screenHeight, "DATA STRUCTURES VISUALIZATION");
+    scaleX = GetScreenWidth() / BASE_WIDTH;
+    scaleY = GetScreenHeight() / BASE_HEIGHT;
 
     SetTargetFPS(25);
 
@@ -322,10 +333,14 @@ int main(void)
     while (!WindowShouldClose())
     {
         BeginDrawing();
-
+        if (IsWindowResized())
+        {
+            scaleX = GetScreenWidth() / BASE_WIDTH;
+            scaleY = GetScreenHeight() / BASE_HEIGHT;
+        }
         ClearBackground(DARKGRAY);
         // Draw the linked list using the LinkedList class
-        if (GuiButton((Rectangle{1200, 520, 192, 72}), SEARCHText))
+        if (GuiButton((Rectangle{1200 * scaleX, 520 * scaleY, 192 * scaleX, 72 * scaleY}), SEARCHText))
         {
             cansearch = !cansearch;
             item = SearchITEMValue;
@@ -336,51 +351,51 @@ int main(void)
             }
         }
         linkedList.DrawLinkedList();
-        DrawRectangleRec(Rectangle{312, 520, 152, 72}, LIGHTGRAY);
-        DrawRectangleRec(Rectangle{312, 696, 152, 72}, LIGHTGRAY);
-        DrawRectangleRec(Rectangle{312, 608, 152, 72}, LIGHTGRAY);
-        DrawRectangleRec(Rectangle{520, 696, 152, 72}, LIGHTGRAY);
-        DrawRectangleRec(Rectangle{1000, 696, 152, 72}, LIGHTGRAY);
-        DrawRectangleRec(Rectangle{1400, 520, 152, 72}, LIGHTGRAY);
-        if (GuiValueBox((Rectangle{1400, 520, 152, 72}), SearchText, &SearchITEMValue, 0, 100, SearchITEMEditMode))
+        DrawRectangleRec(Rectangle{312 * scaleX, 520 * scaleY, 152*scaleX, 72 * scaleY}, LIGHTGRAY);
+        DrawRectangleRec(Rectangle{312 * scaleX, 696 * scaleY, 152 * scaleX, 72 * scaleY}, LIGHTGRAY);
+        DrawRectangleRec(Rectangle{312 * scaleX, 608 * scaleY, 152 * scaleX, 72 * scaleY}, LIGHTGRAY);
+        DrawRectangleRec(Rectangle{520 * scaleX, 696 * scaleY, 152 * scaleX, 72 * scaleY}, LIGHTGRAY);
+        DrawRectangleRec(Rectangle{1000 * scaleX, 696 * scaleY, 152 * scaleX, 72 * scaleY}, LIGHTGRAY);
+        DrawRectangleRec(Rectangle{1400 * scaleX, 520 * scaleY, 152 * scaleX, 72 * scaleY}, LIGHTGRAY);
+        if (GuiValueBox((Rectangle{1400 * scaleX, 520 * scaleY, 152 * scaleX, 72 * scaleY}), SearchText, &SearchITEMValue, 0, 100, SearchITEMEditMode))
         {
             SearchITEMEditMode = !SearchITEMEditMode;
         }
-        if (GuiButton((Rectangle{96, 520, 192, 72}), Button000Text))
+        if (GuiButton((Rectangle{96 * scaleX, 520 * scaleY, 192 * scaleX, 72 * scaleY}), Button000Text))
         {
             linkedList.AddNode(to_string(ValueBOx003Value));
             ValueBOx003Value = 0;
         }
-        if (GuiValueBox((Rectangle{312, 520, 152, 72}), ValueBOx003Text, &ValueBOx003Value, 0, 100, ValueBOx003EditMode))
+        if (GuiValueBox((Rectangle{312 * scaleX, 520 * scaleY, 152 * scaleX, 72 * scaleY}), ValueBOx003Text, &ValueBOx003Value, 0, 100, ValueBOx003EditMode))
             ValueBOx003EditMode = !ValueBOx003EditMode;
-        if (GuiButton((Rectangle{96, 608, 192, 72}), ADDBEGText))
+        if (GuiButton((Rectangle{96 * scaleX, 608 * scaleY, 192 * scaleX, 72 * scaleY}), ADDBEGText))
         {
             linkedList.addBegin(to_string(ADDBEGVALValue));
             ADDBEGVALValue = 0;
         }
-        if (GuiButton((Rectangle{96, 696, 192, 72}), ADDANYText))
+        if (GuiButton((Rectangle{96 * scaleX, 696 * scaleY, 192 * scaleX, 72 * scaleY}), ADDANYText))
         {
             linkedList.addAny(ADDANYPOSValue, to_string(ADDANYVALValue));
             ADDANYPOSValue = 0;
             ADDANYVALValue = 0;
         }
-        if (GuiValueBox((Rectangle{312, 608, 152, 72}), ADDBEGVALText, &ADDBEGVALValue, 0, 100, ADDBEGVALEditMode))
+        if (GuiValueBox((Rectangle{312 * scaleX, 608 * scaleY, 152 * scaleX, 72 * scaleY}), ADDBEGVALText, &ADDBEGVALValue, 0, 100, ADDBEGVALEditMode))
             ADDBEGVALEditMode = !ADDBEGVALEditMode;
-        if (GuiValueBox((Rectangle{312, 696, 152, 72}), ADDANYVALText, &ADDANYVALValue, 0, 100, ADDANYVALEditMode))
+        if (GuiValueBox((Rectangle{312 * scaleX, 696 * scaleY, 152 * scaleX, 72 * scaleY}), ADDANYVALText, &ADDANYVALValue, 0, 100, ADDANYVALEditMode))
             ADDANYVALEditMode = !ADDANYVALEditMode;
-        if (GuiValueBox((Rectangle{520, 696, 152, 72}), ADDANYPOSText, &ADDANYPOSValue, 0, 100, ADDANYPOSEditMode))
+        if (GuiValueBox((Rectangle{520 * scaleX, 696 * scaleY, 152 * scaleX, 72 * scaleY}), ADDANYPOSText, &ADDANYPOSValue, 0, 100, ADDANYPOSEditMode))
             ADDANYPOSEditMode = !ADDANYPOSEditMode;
-        if (GuiButton((Rectangle{752, 616, 192, 72}), DELBEGText))
+        if (GuiButton((Rectangle{752 * scaleX, 616 * scaleY, 192 * scaleX, 72 * scaleY}), DELBEGText))
         {
             linkedList.removeNodeBegin();
         }
-        if (GuiButton((Rectangle{752, 696, 192, 72}), DELANYText))
+        if (GuiButton((Rectangle{752 * scaleX, 696 * scaleY, 192 * scaleX, 72 * scaleY}), DELANYText))
         {
             linkedList.removeAny(DELANYPOSValue);
         }
-        if (GuiValueBox((Rectangle{1000, 696, 152, 72}), DELANYPOSText, &DELANYPOSValue, 0, 100, DELANYPOSEditMode))
+        if (GuiValueBox((Rectangle{1000 * scaleX, 696 * scaleY, 152 * scaleX, 72 * scaleY}), DELANYPOSText, &DELANYPOSValue, 0, 100, DELANYPOSEditMode))
             DELANYPOSEditMode = !DELANYPOSEditMode;
-        if (GuiButton((Rectangle{752, 528, 192, 72}), DELENDText))
+        if (GuiButton((Rectangle{752 * scaleX, 528 * scaleY, 192 * scaleX, 72 * scaleY}), DELENDText))
         {
             linkedList.removeNodeEnd();
         }
